@@ -1,10 +1,10 @@
 import type { AppState } from '../types';
 import { createSeed } from '../data/seed';
 
-const STATE_KEY = 'voltswap.state.v1';
+const STATE_KEY = 'voltswap.state.v2';
 const SESSION_KEY = 'voltswap.session.v1';
 
-const ARRAY_KEYS: (keyof AppState)[] = ['users', 'vehicles', 'stations', 'batteries', 'reservations', 'swaps', 'payments'];
+const ARRAY_KEYS: (keyof AppState)[] = ['users', 'vehicles', 'stations', 'batteries', 'reservations', 'swaps', 'payments', 'notifications'];
 
 /** Loads persisted state; any malformed / missing data silently falls back to fresh seed data. */
 export function loadState(): AppState {

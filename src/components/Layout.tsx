@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   BatteryCharging, ClipboardList, History, LayoutDashboard, LogOut, MapPin, Menu, RefreshCw, Repeat, Settings2, Warehouse, X,
-  FileBarChart, Zap, Boxes, type LucideIcon,
+  FileBarChart, Zap, Boxes, Bell, Receipt, Users, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ConfirmDialog, DemoNote } from './ui';
 import { cn, humanize } from '../utils/format';
+import { unreadCount } from '../services/notificationService';
 import type { Role } from '../types';
 
 export function Logo({ light }: { light?: boolean }) {
@@ -25,6 +26,8 @@ const NAV: Record<Role, { to: string; label: string; icon: LucideIcon; end?: boo
     { to: '/owner', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/owner/stations', label: 'Find Stations', icon: MapPin },
     { to: '/owner/reservations', label: 'My Reservations', icon: History },
+    { to: '/owner/transactions', label: 'Transaction History', icon: Receipt },
+    { to: '/owner/notifications', label: 'Notifications', icon: Bell },
   ],
   OPERATOR: [
     { to: '/operator', label: 'Station Overview', icon: LayoutDashboard, end: true },
@@ -35,6 +38,7 @@ const NAV: Record<Role, { to: string; label: string; icon: LucideIcon; end?: boo
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/admin/stations', label: 'Manage Stations', icon: Warehouse },
     { to: '/admin/batteries', label: 'Manage Batteries', icon: Boxes },
+    { to: '/admin/users', label: 'Manage Users', icon: Users },
     { to: '/admin/reports', label: 'Reservations & Reports', icon: FileBarChart },
   ],
 };
@@ -45,6 +49,7 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   if (!user) return null;
+  const unread = user.role === 'OWNER' ? unreadCount(state, user.id) : 0;
   const station = user.stationId ? state.stations.find((s) => s.id === user.stationId) : undefined;
 
   const sidebar = (
@@ -59,6 +64,7 @@ export default function Layout() {
             className={({ isActive }) => cn('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
               isActive ? 'bg-navy-700 text-white' : 'hover:bg-navy-800 hover:text-white')}>
             <Icon className="h-4.5 w-4.5" /> {label}
+            {to === '/owner/notifications' && unread > 0 && <span className="ml-auto rounded-full bg-volt-500 px-2 py-0.5 text-xs font-bold text-navy-950">{unread}</span>}
           </NavLink>
         ))}
       </nav>

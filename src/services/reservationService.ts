@@ -1,7 +1,8 @@
-import type { AppState, Out, Reservation, Station } from '../types';
+import type { AppState, Out, Payment, Reservation, ReservationStatus, Station } from '../types';
 import { assert } from './errors';
-import { GST_RATE, isActiveReservation } from './constants';
-import { isReservable } from './inventoryService';
+import { CONFIRMED_GRACE_AFTER_SLOT_MIN, GST_RATE, PENDING_PAYMENT_TTL_MIN, isActiveReservation } from './constants';
+import { isReservable } from './batteryService';
+import { notify } from './notificationService';
 import { uniqueId } from '../utils/format';
 
 export interface FeeBreakdown { base: number; gst: number; total: number }
@@ -40,9 +41,11 @@ export interface ReserveInput {
   slot: string;
 }
 
+const inMinutes = (iso: string | number, min: number) => new Date(new Date(iso).getTime() + min * 60000).toISOString();
+
 /**
- * Creates a reservation and immediately locks the battery (status RESERVED), which is what
- * prevents double-booking: the next caller sees status !== AVAILABLE and is rejected.
+ * createReservation(): creates a reservation and immediately locks the battery (FULLY_CHARGED → RESERVED).
+ * That lock is what prevents double-booking: the next caller sees a non-FULLY_CHARGED battery and is rejected.
  */
 export function createReservation(state: AppState, input: ReserveInput): Out<Reservation> {
   const vehicle = state.vehicles.find((v) => v.id === input.vehicleId && v.ownerId === input.ownerId);
@@ -70,24 +73,31 @@ export function createReservation(state: AppState, input: ReserveInput): Out<Res
   assert(slot, 'Please choose a valid upcoming time slot.');
   assert(slot.remaining > 0, 'That time slot is full. Please choose another.');
 
+  const id = uniqueId('RSV', state.reservations.map((r) => r.id)); // rule 3: unique IDs
+  const now = new Date().toISOString();
   const reservation: Reservation = {
-    id: uniqueId('RSV', state.reservations.map((r) => r.id)), // rule 3: unique IDs
+    id,
     ownerId: input.ownerId,
     stationId: station.id,
     vehicleId: vehicle.id,
     batteryId: battery.id,
     slot: input.slot,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     status: 'PENDING_PAYMENT',
     paymentStatus: 'PENDING',
     estimatedFee: computeFee(station).total,
+    qrCode: `VS:${id}:${uniqueId('', [], false).slice(1, 7)}`,
+    expiresAt: inMinutes(now, PENDING_PAYMENT_TTL_MIN),
+  };
+  const next: AppState = {
+    ...state,
+    reservations: [reservation, ...state.reservations],
+    batteries: state.batteries.map((b) => (b.id === battery.id ? { ...b, status: 'RESERVED' } : b)),
   };
   return {
-    state: {
-      ...state,
-      reservations: [reservation, ...state.reservations],
-      batteries: state.batteries.map((b) => (b.id === battery.id ? { ...b, status: 'RESERVED' } : b)),
-    },
+    state: notify(next, input.ownerId, 'Reservation created',
+      `Battery ${battery.id} is held for you at ${station.name}. Complete payment within ${PENDING_PAYMENT_TTL_MIN} minutes to confirm reservation ${id}.`,
+      { reservationId: id }),
     result: reservation,
   };
 }
@@ -96,30 +106,58 @@ export function canCancel(state: AppState, r: Reservation): boolean {
   return isActiveReservation(r) && !state.swaps.some((s) => s.reservationId === r.id && s.status === 'IN_PROGRESS');
 }
 
-/** Rule 4: cancelling releases the battery to AVAILABLE and refunds a successful digital payment (simulated). */
-export function cancelReservation(state: AppState, reservationId: string): Out<Reservation> {
-  const r = state.reservations.find((x) => x.id === reservationId);
-  assert(r, 'Reservation not found.');
-  assert(isActiveReservation(r), `A ${r.status.toLowerCase()} reservation cannot be cancelled.`);
-  assert(canCancel(state, r), 'This reservation is being served at the station right now and cannot be cancelled.');
-
+/**
+ * Shared by cancel and expiry (state chart: RESERVED → FULLY_CHARGED on "Cancel / Expire").
+ * Releases the battery and settles any payment (simulated refund of a successful digital payment).
+ */
+function releaseReservation(state: AppState, r: Reservation, status: Extract<ReservationStatus, 'CANCELLED' | 'EXPIRED'>): AppState {
   let paymentStatus = r.paymentStatus;
-  const payments = state.payments.map((p) => {
+  const payments: Payment[] = state.payments.map((p) => {
     if (p.reservationId !== r.id) return p;
     if (p.status === 'SUCCESS') { paymentStatus = 'REFUNDED'; return { ...p, status: 'REFUNDED' as const }; }
     if (p.status === 'PENDING') return { ...p, status: 'CANCELLED' as const };
     return p;
   });
-  const cancelled: Reservation = { ...r, status: 'CANCELLED', paymentStatus };
-  return {
-    state: {
-      ...state,
-      payments,
-      reservations: state.reservations.map((x) => (x.id === r.id ? cancelled : x)),
-      batteries: state.batteries.map((b) =>
-        b.id === r.batteryId && b.status === 'RESERVED' ? { ...b, status: 'AVAILABLE' } : b,
-      ),
-    },
-    result: cancelled,
+  const released: AppState = {
+    ...state,
+    payments,
+    reservations: state.reservations.map((x) => (x.id === r.id ? { ...x, status, paymentStatus } : x)),
+    batteries: state.batteries.map((b) => (b.id === r.batteryId && b.status === 'RESERVED' ? { ...b, status: 'FULLY_CHARGED' } : b)),
   };
+  const refunded = paymentStatus === 'REFUNDED' ? ' Your payment has been refunded (simulated).' : '';
+  return notify(released, r.ownerId,
+    status === 'CANCELLED' ? 'Reservation cancelled' : 'Reservation expired',
+    status === 'CANCELLED'
+      ? `Reservation ${r.id} was cancelled and the battery released.${refunded}`
+      : `Reservation ${r.id} expired and the battery was released.${refunded}`,
+    { reservationId: r.id, email: true, sms: status === 'EXPIRED' });
 }
+
+/** Rule 4: cancelling an eligible reservation releases its battery. */
+export function cancelReservation(state: AppState, reservationId: string): Out<Reservation> {
+  const r = state.reservations.find((x) => x.id === reservationId);
+  assert(r, 'Reservation not found.');
+  assert(isActiveReservation(r), `A ${r.status.toLowerCase().replace('_', ' ')} reservation cannot be cancelled.`);
+  assert(canCancel(state, r), 'This reservation is being served at the station right now and cannot be cancelled.');
+  const next = releaseReservation(state, r, 'CANCELLED');
+  return { state: next, result: next.reservations.find((x) => x.id === r.id)! };
+}
+
+/**
+ * Expires reservations whose deadline passed (unpaid after 15 min, or slot + 60 min without a swap).
+ * Run on app load, on a timer, and before every action. Returns the number of reservations expired.
+ */
+export function expireStale(state: AppState, now = new Date()): Out<number> {
+  let next = state;
+  let count = 0;
+  for (const r of state.reservations) {
+    if (!isActiveReservation(r) || new Date(r.expiresAt).getTime() > now.getTime()) continue;
+    if (!canCancel(next, r)) continue; // a swap in progress is never expired under the operator's hands
+    next = releaseReservation(next, r, 'EXPIRED');
+    count++;
+  }
+  return { state: next, result: count };
+}
+
+/** Called when payment succeeds: the reservation now lives until slot + 60 min. */
+export const confirmedExpiry = (slot: string) => inMinutes(slot, CONFIRMED_GRACE_AFTER_SLOT_MIN);

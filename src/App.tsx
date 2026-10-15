@@ -11,6 +11,9 @@ import StationDetails from './pages/owner/StationDetails';
 import ReserveBattery from './pages/owner/ReserveBattery';
 import ReservationDetail from './pages/owner/ReservationDetail';
 import MyReservations from './pages/owner/MyReservations';
+import Transactions from './pages/owner/Transactions';
+import Notifications from './pages/owner/Notifications';
+import AdminUsers from './pages/admin/AdminUsers';
 import OperatorOverview from './pages/operator/OperatorOverview';
 import ManageSwaps from './pages/operator/ManageSwaps';
 import OperatorInventory from './pages/operator/OperatorInventory';
@@ -44,6 +47,8 @@ export default function App() {
             <Route path="/owner/stations/:stationId" element={<RequireRole role="OWNER"><StationDetails /></RequireRole>} />
             <Route path="/owner/reserve" element={<RequireRole role="OWNER"><ReserveBattery /></RequireRole>} />
             <Route path="/owner/reservations" element={<RequireRole role="OWNER"><MyReservations /></RequireRole>} />
+            <Route path="/owner/transactions" element={<RequireRole role="OWNER"><Transactions /></RequireRole>} />
+            <Route path="/owner/notifications" element={<RequireRole role="OWNER"><Notifications /></RequireRole>} />
             <Route path="/owner/reservations/:reservationId" element={<RequireRole role="OWNER"><ReservationDetail /></RequireRole>} />
 
             <Route path="/operator" element={<RequireRole role="OPERATOR"><OperatorOverview /></RequireRole>} />
@@ -53,6 +58,7 @@ export default function App() {
             <Route path="/admin" element={<RequireRole role="ADMIN"><AdminDashboard /></RequireRole>} />
             <Route path="/admin/stations" element={<RequireRole role="ADMIN"><AdminStations /></RequireRole>} />
             <Route path="/admin/batteries" element={<RequireRole role="ADMIN"><AdminBatteries /></RequireRole>} />
+            <Route path="/admin/users" element={<RequireRole role="ADMIN"><AdminUsers /></RequireRole>} />
             <Route path="/admin/reports" element={<RequireRole role="ADMIN"><AdminReports /></RequireRole>} />
           </Route>
           <Route path="*" element={<RoleRedirect />} />

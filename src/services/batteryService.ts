@@ -8,10 +8,12 @@ import {
   isActiveReservation,
 } from './constants';
 
-/** Business rule 1: only a compatible, charged, AVAILABLE and not-already-reserved battery can be booked. */
+// Battery Service (inventory + lifecycle) and station management.
+
+/** Business rule 1: only a compatible, charged (FULLY_CHARGED), healthy, not-already-reserved battery can be booked. */
 export function isReservable(state: AppState, battery: Battery): boolean {
   return (
-    battery.status === 'AVAILABLE' &&
+    battery.status === 'FULLY_CHARGED' &&
     battery.chargePercentage >= MIN_CHARGE_FOR_RESERVATION &&
     battery.healthPercentage >= MIN_HEALTH_FOR_RESERVATION &&
     !state.reservations.some((r) => isActiveReservation(r) && r.batteryId === battery.id)
@@ -26,7 +28,7 @@ export function reservableBatteries(state: AppState, stationId: string, batteryT
 
 export function countByStatus(state: AppState, stationId?: string): Record<BatteryStatus, number> {
   const counts: Record<BatteryStatus, number> = {
-    AVAILABLE: 0, CHARGING: 0, RESERVED: 0, IN_USE: 0, NEEDS_CHARGING: 0, MAINTENANCE: 0,
+    CREATED: 0, IN_INVENTORY: 0, CHARGING: 0, FULLY_CHARGED: 0, RESERVED: 0, IN_USE: 0, DEPLETED: 0,
   };
   state.batteries.forEach((b) => {
     if (!stationId || b.stationId === stationId) counts[b.status]++;
@@ -36,28 +38,28 @@ export function countByStatus(state: AppState, stationId?: string): Record<Batte
 
 export const canTransition = (from: BatteryStatus, to: BatteryStatus) => BATTERY_TRANSITIONS[from].includes(to);
 
-/** Operator/admin status change, restricted to the transition table in constants.ts. */
+/** updateBatteryStatus(): operator/admin change, restricted to the transition table in constants.ts. */
 export function transitionBattery(state: AppState, batteryId: string, to: BatteryStatus): Out<Battery> {
   const battery = state.batteries.find((b) => b.id === batteryId);
   assert(battery, 'Battery not found.');
   assert(
     canTransition(battery.status, to),
     `Invalid transition: ${battery.status} → ${to}. ${
-      battery.status === 'RESERVED' || battery.status === 'IN_USE'
+      battery.status === 'RESERVED' || battery.status === 'IN_USE' || battery.status === 'FULLY_CHARGED'
         ? 'This status is managed by the reservation/swap workflow.'
         : ''
     }`.trim(),
   );
-  // Completing a charge is recorded by the operator; the battery is then full.
+  // "Charging complete" is recorded by the operator; the battery is then full.
   const updated: Battery = {
     ...battery,
     status: to,
-    chargePercentage: battery.status === 'CHARGING' && to === 'AVAILABLE' ? 100 : battery.chargePercentage,
+    chargePercentage: to === 'FULLY_CHARGED' ? 100 : battery.chargePercentage,
   };
   return { state: { ...state, batteries: state.batteries.map((b) => (b.id === batteryId ? updated : b)) }, result: updated };
 }
 
-export type BatteryInput = Omit<Battery, 'status'> & { status: BatteryStatus };
+export type BatteryInput = Battery;
 
 export function validateBatteryInput(state: AppState, input: BatteryInput, editing: boolean): Record<string, string> {
   const e: Record<string, string> = {};
@@ -73,8 +75,8 @@ export function validateBatteryInput(state: AppState, input: BatteryInput, editi
     e.chargePercentage = 'Charge must be 0–100%.';
   if (!(Number.isFinite(input.healthPercentage) && input.healthPercentage >= 0 && input.healthPercentage <= 100))
     e.healthPercentage = 'Health must be 0–100%.';
-  if (input.status === 'AVAILABLE' && input.chargePercentage < MIN_CHARGE_FOR_RESERVATION)
-    e.status = `AVAILABLE batteries need at least ${MIN_CHARGE_FOR_RESERVATION}% charge.`;
+  if (input.status === 'FULLY_CHARGED' && input.chargePercentage < MIN_CHARGE_FOR_RESERVATION)
+    e.status = `FULLY_CHARGED batteries need at least ${MIN_CHARGE_FOR_RESERVATION}% charge.`;
   return e;
 }
 

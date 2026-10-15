@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { Button, Card, EmptyState, PageHeader, StatCard, StatusBadge, Table, Td } from '../../components/ui';
 import StationCard from '../../components/StationCard';
 import { isActiveReservation } from '../../services/constants';
-import { isReservable } from '../../services/inventoryService';
+import { isReservable } from '../../services/batteryService';
 import { ownerReservations } from '../../services/selectors';
 import { formatDateTime } from '../../utils/format';
 

@@ -3,7 +3,7 @@ import { CheckCircle2, Search, XCircle } from 'lucide-react';
 import type { SwapSession } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Button, Card, ConfirmDialog, DemoNote, Field, PageHeader, StatusBadge, Table, Td, inputClass } from '../../components/ui';
-import { abortSwap, completeSwap, startSwap } from '../../services/swapService';
+import { abortSwap, completeSwap, receiptNumber, startSwap } from '../../services/swapService';
 import { formatDateTime, formatINR } from '../../utils/format';
 
 /** Operator workflow: find → verify → compatibility → record returned battery → issue charged battery → confirm. */
@@ -16,7 +16,6 @@ export default function ManageSwaps() {
   const [activeId, setActiveId] = useState<string | null>(null); // reservation currently being served
   const [returnedId, setReturnedId] = useState('');
   const [returnedCharge, setReturnedCharge] = useState('15');
-  const [flagMaint, setFlagMaint] = useState(false);
   const [handedOver, setHandedOver] = useState(false);
   const [cashTaken, setCashTaken] = useState(false);
   const [done, setDone] = useState<SwapSession | null>(null);
@@ -32,7 +31,7 @@ export default function ManageSwaps() {
   const cashDue = reservation?.paymentStatus === 'PAY_AT_STATION';
 
   const reset = () => {
-    setActiveId(null); setIdInput(''); setReturnedId(''); setReturnedCharge('15'); setFlagMaint(false); setHandedOver(false); setCashTaken(false); setError('');
+    setActiveId(null); setIdInput(''); setReturnedId(''); setReturnedCharge('15'); setHandedOver(false); setCashTaken(false); setError('');
   };
 
   const verify = (id: string) => {
@@ -54,7 +53,7 @@ export default function ManageSwaps() {
     if (!handedOver) return setError('Confirm that you physically handed over the charged battery.');
     if (cashDue && !cashTaken) return setError(`Confirm that ${formatINR(reservation!.estimatedFee)} cash was collected.`);
     setError('');
-    const result = run((st) => completeSwap(st, { stationId, reservationId: reservation!.id, returnedBatteryId: returnedId, returnedCharge: charge, flagMaintenance: flagMaint }),
+    const result = run((st) => completeSwap(st, { stationId, reservationId: reservation!.id, returnedBatteryId: returnedId, returnedCharge: charge }),
       'Swap recorded as completed.');
     if (result) { setDone(result); reset(); }
   };
@@ -72,6 +71,7 @@ export default function ManageSwaps() {
         <Card className="mb-6 border-emerald-300 bg-emerald-50 p-5">
           <div className="flex items-center gap-2 text-emerald-800"><CheckCircle2 className="h-6 w-6" /><h2 className="text-lg font-bold">Swap completed</h2></div>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <div><dt className="text-emerald-700">Receipt</dt><dd className="font-mono font-semibold">{receiptNumber(done.id)}</dd></div>
             <div><dt className="text-emerald-700">Swap session</dt><dd className="font-mono font-semibold">{done.id}</dd></div>
             <div><dt className="text-emerald-700">Issued battery (now IN_USE)</dt><dd className="font-semibold">{done.assignedBatteryId}</dd></div>
             <div><dt className="text-emerald-700">Returned battery</dt><dd className="font-semibold">{done.returnedBatteryId}</dd></div>
@@ -82,13 +82,13 @@ export default function ManageSwaps() {
       )}
 
       <Card className="mb-6 p-5">
-        <h2 className="mb-3 font-semibold">Step 1–2 · Find and verify reservation</h2>
+        <h2 className="mb-3 font-semibold">Step 1–2 · Scan and verify reservation</h2>
         <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); verify(idInput); }}>
-          <div className="min-w-60 flex-1"><Field label="Reservation ID">
+          <div className="min-w-60 flex-1"><Field label="QR code payload or reservation ID" hint="Paste the scanned QR text (VS:…) — or type the reservation ID if the customer has no phone.">
             <div className="relative"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input className={inputClass + ' pl-9 font-mono'} placeholder="e.g. RSV-261015-K7Q2" value={idInput} onChange={(e) => setIdInput(e.target.value)} /></div>
+              <input className={inputClass + ' pl-9 font-mono'} placeholder="VS:RSV-261015-K7Q2:AB12CD" value={idInput} onChange={(e) => setIdInput(e.target.value)} /></div>
           </Field></div>
-          <Button type="submit">Verify &amp; start swap</Button>
+          <Button type="submit">Verify QR &amp; start swap</Button>
         </form>
         <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-600">Reservations for this station</h3>
         {queue.length === 0 ? <p className="text-sm text-slate-500">No open reservations.</p> : (
@@ -96,7 +96,7 @@ export default function ManageSwaps() {
             {queue.map((r) => (
               <tr key={r.id}><Td className="font-mono text-xs font-semibold">{r.id}</Td><Td>{state.users.find((u) => u.id === r.ownerId)?.name}</Td>
                 <Td>{formatDateTime(r.slot)}</Td><Td><StatusBadge status={r.status} /></Td><Td><StatusBadge status={r.paymentStatus} /></Td>
-                <Td><Button size="sm" variant="secondary" onClick={() => { setIdInput(r.id); verify(r.id); }}>Verify</Button></Td></tr>
+                <Td><Button size="sm" variant="secondary" onClick={() => { setIdInput(r.qrCode); verify(r.qrCode); }}>Simulate scan</Button></Td></tr>
             ))}
           </Table>
         )}
@@ -124,7 +124,7 @@ export default function ManageSwaps() {
               </select>
             </Field>
             <Field label="Charge on return (%)"><input type="number" min={0} max={100} className={inputClass} value={returnedCharge} onChange={(e) => setReturnedCharge(e.target.value)} /></Field>
-            <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={flagMaint} onChange={(e) => setFlagMaint(e.target.checked)} />Damaged — flag for maintenance</label>
+            <p className="self-end pb-2 text-xs text-slate-500">The returned battery becomes <b>Depleted</b> and can then be sent to charging.</p>
           </div>
 
           <h3 className="mb-2 text-sm font-semibold text-slate-600">Step 5 · Issue the charged battery</h3>

@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { Button, Card, DemoNote, Field, Modal, PageHeader, inputClass } from '../../components/ui';
 import BatteryTable from '../../components/BatteryTable';
 import { BATTERY_TRANSITIONS } from '../../services/constants';
-import { addBattery, updateBattery, validateBatteryInput } from '../../services/inventoryService';
+import { addBattery, updateBattery, validateBatteryInput } from '../../services/batteryService';
 import { humanize } from '../../utils/format';
 
 export default function AdminBatteries() {
@@ -18,7 +18,7 @@ export default function AdminBatteries() {
 
   const open = (b: Battery | null) => {
     setIsNew(!b); setOriginal(b);
-    setForm(b ? { ...b } : { id: '', stationId: state.stations[0]?.id ?? '', batteryType: 'VS-48V', capacityKWh: 1.5, chargePercentage: 100, healthPercentage: 100, status: 'AVAILABLE' });
+    setForm(b ? { ...b } : { id: '', stationId: state.stations[0]?.id ?? '', batteryType: 'VS-48V', capacityKWh: 1.5, chargePercentage: 0, healthPercentage: 100, status: 'CREATED' });
     setErrors({});
   };
   const submit = () => {
@@ -31,7 +31,7 @@ export default function AdminBatteries() {
   };
   const locked = !isNew && (original?.status === 'RESERVED' || original?.status === 'IN_USE');
   // Status choices: current status + valid transitions (new batteries may start in any non-RESERVED state).
-  const statusOptions: BatteryStatus[] = isNew ? ['AVAILABLE', 'CHARGING', 'NEEDS_CHARGING', 'MAINTENANCE', 'IN_USE']
+  const statusOptions: BatteryStatus[] = isNew ? ['CREATED', 'IN_INVENTORY', 'CHARGING', 'FULLY_CHARGED', 'DEPLETED', 'IN_USE']
     : original ? [original.status, ...BATTERY_TRANSITIONS[original.status]] : [];
   const num = (k: 'capacityKWh' | 'chargePercentage' | 'healthPercentage', v: string) => form && setForm({ ...form, [k]: v === '' ? NaN : Number(v) });
   const val = (n: number) => (Number.isNaN(n) ? '' : n);

@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, Card, ChargeBar, DemoNote, EmptyState, PageHeader, StatusBadge, Table, Td } from '../../components/ui';
-import { countByStatus, isReservable } from '../../services/inventoryService';
+import { countByStatus, isReservable } from '../../services/batteryService';
 import { computeFee, generateSlots } from '../../services/reservationService';
 import { BATTERY_STATUSES } from '../../types';
 import { formatDateTime, formatINR, humanize } from '../../utils/format';

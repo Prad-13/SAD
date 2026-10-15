@@ -1,21 +1,32 @@
 import type { AppState, Out, Payment, Reservation, SwapSession } from '../types';
 import { assert } from './errors';
+import { notify } from './notificationService';
 import { uniqueId } from '../utils/format';
 
 /**
  * Rule 5: only a valid reservation may be verified at a station.
- * Valid = exists, belongs to this station, payment settled (CONFIRMED), not completed/cancelled,
+ * `input` is the scanned QR payload (VS:<reservationId>:<token>) or, as a fallback for customers without
+ * a phone, a typed reservation ID. A QR payload must match the code issued for that reservation exactly.
+ * Valid = exists, this station, payment settled (CONFIRMED), not completed/cancelled/expired,
  * and its reserved battery is still locked (RESERVED) and compatible with the vehicle.
  */
-export function verifyReservation(state: AppState, stationId: string, reservationId: string): Reservation {
-  const id = reservationId.trim().toUpperCase();
-  assert(id, 'Enter a reservation ID.');
-  const r = state.reservations.find((x) => x.id.toUpperCase() === id);
-  assert(r, `No reservation found with ID ${id}.`);
+export function verifyReservation(state: AppState, stationId: string, input: string): Reservation {
+  const raw = input.trim();
+  assert(raw, 'Scan the QR code or enter a reservation ID.');
+  let r: Reservation | undefined;
+  if (/^VS:/i.test(raw)) {
+    const parts = raw.split(':');
+    r = state.reservations.find((x) => x.id.toUpperCase() === (parts[1] ?? '').toUpperCase());
+    assert(r && r.qrCode.toUpperCase() === raw.toUpperCase(), 'Invalid QR code — it does not match any reservation.');
+  } else {
+    r = state.reservations.find((x) => x.id.toUpperCase() === raw.toUpperCase());
+    assert(r, `No reservation found with ID ${raw.toUpperCase()}.`);
+  }
   assert(r.stationId === stationId, `Reservation ${r.id} is for a different station and cannot be served here.`);
   switch (r.status) {
     case 'COMPLETED': throw new Error(`Reservation ${r.id} has already been completed. A swap cannot be completed twice.`);
     case 'CANCELLED': throw new Error(`Reservation ${r.id} was cancelled.`);
+    case 'EXPIRED': throw new Error(`Reservation ${r.id} has expired.`);
     case 'PENDING_PAYMENT': throw new Error(`Reservation ${r.id} is not confirmed — payment is ${r.paymentStatus.toLowerCase()}. Ask the customer to complete payment first.`);
   }
   const vehicle = state.vehicles.find((v) => v.id === r.vehicleId);
@@ -26,9 +37,9 @@ export function verifyReservation(state: AppState, stationId: string, reservatio
   return r;
 }
 
-/** Step 2 of the operator workflow: after verification, open an IN_PROGRESS swap session (idempotent). */
-export function startSwap(state: AppState, stationId: string, reservationId: string): Out<SwapSession> {
-  const r = verifyReservation(state, stationId, reservationId);
+/** After verification, open an IN_PROGRESS swap session (idempotent). */
+export function startSwap(state: AppState, stationId: string, input: string): Out<SwapSession> {
+  const r = verifyReservation(state, stationId, input);
   const existing = state.swaps.find((s) => s.reservationId === r.id && s.status === 'IN_PROGRESS');
   if (existing) return { state, result: existing };
   const session: SwapSession = {
@@ -54,12 +65,15 @@ export interface CompleteSwapInput {
   reservationId: string;
   returnedBatteryId: string;
   returnedCharge: number;
-  flagMaintenance: boolean;
 }
+
+export const receiptNumber = (swapId: string) => `RCT-${swapId.replace(/^SWP-/, '')}`;
 
 /**
  * The operator records a swap that physically happened (the app does not move any hardware).
- * Rules 6, 7, 8 and 10 are enforced here, in one atomic state update.
+ * Rules 6, 7, 8 and 10 are enforced here, in one atomic state update:
+ *   issued battery: RESERVED → IN_USE; returned battery: IN_USE → DEPLETED (state chart "Battery returned");
+ *   reservation → COMPLETED; session → COMPLETED; receipt generated and the owner notified.
  */
 export function completeSwap(state: AppState, input: CompleteSwapInput): Out<SwapSession> {
   const r = verifyReservation(state, input.stationId, input.reservationId); // rejects COMPLETED → rule 6
@@ -77,8 +91,7 @@ export function completeSwap(state: AppState, input: CompleteSwapInput): Out<Swa
   assert(Number.isFinite(input.returnedCharge) && input.returnedCharge >= 0 && input.returnedCharge <= 100,
     'Returned battery charge must be between 0 and 100%.');
 
-  const now = new Date().toISOString();
-  const completed: SwapSession = { ...session, returnedBatteryId: returned.id, completedAt: now, status: 'COMPLETED' };
+  const completed: SwapSession = { ...session, returnedBatteryId: returned.id, completedAt: new Date().toISOString(), status: 'COMPLETED' };
 
   // Cash is settled at the station when the swap is completed.
   let payments: Payment[] = state.payments;
@@ -88,20 +101,22 @@ export function completeSwap(state: AppState, input: CompleteSwapInput): Out<Swa
     paymentStatus = 'PAID';
   }
 
+  const next: AppState = {
+    ...state,
+    payments,
+    swaps: state.swaps.map((s) => (s.id === session.id ? completed : s)),
+    reservations: state.reservations.map((x) => (x.id === r.id ? { ...x, status: 'COMPLETED', paymentStatus } : x)),
+    vehicles: state.vehicles.map((v) => (v.id === vehicle.id ? { ...v, currentBatteryId: r.batteryId } : v)),
+    batteries: state.batteries.map((b) => {
+      if (b.id === r.batteryId) return { ...b, status: 'IN_USE' }; // rule 7
+      if (b.id === returned.id) return { ...b, stationId: input.stationId, chargePercentage: input.returnedCharge, status: 'DEPLETED' }; // rule 8
+      return b;
+    }),
+  };
   return {
-    state: {
-      ...state,
-      payments,
-      swaps: state.swaps.map((s) => (s.id === session.id ? completed : s)),
-      reservations: state.reservations.map((x) => (x.id === r.id ? { ...x, status: 'COMPLETED', paymentStatus } : x)),
-      vehicles: state.vehicles.map((v) => (v.id === vehicle.id ? { ...v, currentBatteryId: r.batteryId } : v)),
-      batteries: state.batteries.map((b) => {
-        if (b.id === r.batteryId) return { ...b, status: 'IN_USE' }; // rule 7
-        if (b.id === returned.id) // rule 8
-          return { ...b, stationId: input.stationId, chargePercentage: input.returnedCharge, status: input.flagMaintenance ? 'MAINTENANCE' : 'NEEDS_CHARGING' };
-        return b;
-      }),
-    },
+    state: notify(next, r.ownerId, 'Swap completed',
+      `Swap ${completed.id} done: you received ${r.batteryId} and returned ${returned.id}. Receipt ${receiptNumber(completed.id)}, amount ₹${r.estimatedFee}.`,
+      { reservationId: r.id, email: true, sms: true }),
     result: completed,
   };
 }

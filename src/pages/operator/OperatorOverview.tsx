@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { CalendarClock, MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, Card, EmptyState, PageHeader, StatusBadge, Table, Td } from '../../components/ui';
-import { countByStatus } from '../../services/inventoryService';
+import { countByStatus } from '../../services/batteryService';
 import { BATTERY_STATUSES } from '../../types';
 import { formatDateTime, formatINR } from '../../utils/format';
 

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Car } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, Card, ChargeBar, DemoNote, EmptyState, Field, PageHeader, inputClass } from '../../components/ui';
-import { reservableBatteries } from '../../services/inventoryService';
+import { reservableBatteries } from '../../services/batteryService';
 import { computeFee, createReservation, generateSlots } from '../../services/reservationService';
 import { cn, formatDateTime, formatINR } from '../../utils/format';
 

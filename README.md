@@ -1,6 +1,6 @@
 # VoltSwap — EV Battery Swap Station Management (prototype)
 
-React + Vite + TypeScript + Tailwind v4 + React Router + Lucide + Recharts. No backend; all state is persisted in `localStorage`. **All data is fictional sample data and all payments are simulated.**
+React + Vite + TypeScript + Tailwind v4 + React Router + Lucide + Recharts + `qrcode`. No backend: all state lives in `localStorage`. **All data is fictional sample data; payments, email and SMS are simulated.**
 
 ## Run
 
@@ -10,50 +10,60 @@ npm run dev        # http://localhost:5173
 npm run build      # type-check + production build
 ```
 
-## Demo script (≈5 min)
+Demo password for every seeded account: `demo123` (or use the one-click demo buttons). Owners can also **register** (creates the account and a vehicle).
 
-1. Log in as **Aarav Sharma** (EV Owner, VS-48V) → *Find Stations* → Koramangala → *Reserve Battery* → pick BAT-4801, a slot → *Confirm reservation*.
-2. Payment modal: choose UPI, enter `aarav@upi`, select **Simulate failed payment** → failure shown, reservation stays *Pending payment* (battery still held). Select success → *Retry payment* → receipt, reservation *Confirmed*.
-3. *Switch role* → **Meera Krishnan** (Operator, Koramangala) → *Manage Swaps* → paste the reservation ID → *Verify & start swap* → select returned battery (BAT-4890), tick "handed over" → *Confirm swap completed*.
-4. Try verifying the same ID again → "already completed" error (rule 6).
-5. Back as Aarav → *My Reservations* shows the Completed swap. As **Vikram Rao** (Admin) the dashboard, inventory and revenue have updated; *Reports* exports CSV.
-6. Failure paths: open `/owner/reserve?stationId=STN-1001&batteryId=BAT-6001` (reserved battery) → rejected; cancel a reservation → battery returns to Available; sidebar *Reset demo data* restores the seed.
+## Demo script
+
+1. Log in as **Aarav Sharma** (owner, VS-48V) → *Find Stations* (nearest-first, banner shows the nearest station with a compatible charged battery) → *Reserve Battery* → pick BAT-4801 and a slot.
+2. Pay (UPI `aarav@upi`): choose **Simulate failed payment** first → retry → success. The reservation becomes *Confirmed*, a **QR code** appears, and Notifications show in-app + simulated email + SMS.
+3. *Switch role* → **Meera Krishnan** (operator, Koramangala) → *Manage Swaps* → *Simulate scan* (or paste the QR text; a wrong QR is rejected) → pick the returned battery → tick “handed over” → *Confirm swap completed*. Re-scanning the same QR is rejected.
+4. *Battery Inventory*: the returned battery is **Depleted** → *Send to charging* → *Charging complete* (Fully charged).
+5. Back as Aarav: *My Reservations* (swap receipt), *Transaction History*, *Notifications*. As **Vikram Rao** (admin): dashboard, *Manage Users*, *Reports* (incl. the simulated notification outbox, CSV export).
+6. Expiry: an unpaid reservation expires after 15 min (confirmed ones 60 min after their slot) and the battery returns to Fully charged. Sidebar *Reset demo data* restores the seed.
+
+## How the code maps to the UML diagrams
+
+| Diagram element | Code |
+|---|---|
+| Register/Login, AuthService | `services/authService.ts`, `pages/Login.tsx` |
+| Find nearest station, Search Station Service | `services/stationSearchService.ts`, `pages/owner/FindStations.tsx` |
+| Check battery availability, Battery Service | `services/batteryService.ts` (`isReservable`, `reservableBatteries`) |
+| Reserve battery, Reservation Service | `services/reservationService.ts` |
+| Make payment, Payment Gateway (simulated) | `services/paymentService.ts`, `components/PaymentModal.tsx` |
+| Notifications, Notification + Email/SMS service (simulated) | `services/notificationService.ts`, `pages/owner/Notifications.tsx`, admin Reports → Notifications |
+| Display / verify QR code | `components/QrCode.tsx`, `services/swapService.ts` (`verifyReservation`) |
+| Perform swap, update inventory, generate receipt | `services/swapService.ts` (`completeSwap`), `components/SwapReceipt.tsx` |
+| View transaction history | `pages/owner/Transactions.tsx` |
+| Manage stations and users | `pages/admin/AdminStations.tsx`, `AdminUsers.tsx` |
+| Database component | `services/storage.ts` (LocalStorage) |
+| Class diagram (User, Vehicle, Station, Battery, Reservation, Payment) | `types/index.ts` (+ SwapSession, Notification) |
+
+### Battery state chart → `BatteryStatus`
+`CREATED → IN_INVENTORY` (install at station) `→ CHARGING` (send to charging) `→ FULLY_CHARGED` (charging complete) `→ RESERVED` (reserve) `→ IN_USE` (swap) `→ DEPLETED` (battery returned) `→ CHARGING`. `RESERVED → FULLY_CHARGED` on cancel/expire. Manual transitions are limited to `BATTERY_TRANSITIONS` in `services/constants.ts`; RESERVED / IN_USE are only set by the reservation and swap workflows. In the code, the “swap start” transition (RESERVED → IN_USE) happens when the operator confirms the completed hand-over.
 
 ## Folder structure
 
 ```
-src/
-  types/index.ts          All entities (User, Vehicle, Station, Battery, Reservation, SwapSession, Payment) + AppState
-  data/seed.ts            Fictional seed data (3 stations, 18 batteries, 3 owners, history)
-  services/               BUSINESS LOGIC — pure functions: (state, input) => { state, result }, throw on rule violation
-    constants.ts            charge threshold, GST, valid battery status transitions
-    inventoryService.ts     reservability, counts, status transitions, battery/station CRUD + validation
-    reservationService.ts   slots, fee, create (locks battery), cancel (releases battery, refunds)
-    paymentService.ts       simulated UPI/Card/Cash, duplicate-charge protection
-    swapService.ts          verify, start, complete, abort a swap
-    selectors.ts            derived dashboard metrics (nothing hardcoded)
-    storage.ts              safe localStorage load/save (falls back to seed on bad data)
-  context/AppContext.tsx  State holder: run(serviceFn) commits state + persists + toasts errors
-  components/             Reusable UI (ui.tsx primitives, Layout, PaymentModal, StationCard, BatteryTable, ReservationList)
-  pages/{owner,operator,admin}/   One file per screen; role-guarded in App.tsx
+src/types            entities + AppState
+src/data/seed.ts     fictional seed data
+src/services         business logic: pure (state, input) => { state, result }, throws on rule violation
+src/context          AppContext: run(serviceFn) commits, persists, toasts errors; expiry timer; session
+src/components       reusable UI (ui.tsx, Layout, PaymentModal, QrCode, SwapReceipt, ...)
+src/pages            owner/, operator/, admin/ screens (role-guarded in App.tsx)
 ```
 
-UI never mutates data directly: pages call `run(s => someService(s, input))`. If a rule is violated the service throws, state is untouched and an error toast shows.
+## Key business rules
 
-## Key business logic (viva cheat-sheet)
+- Reservable battery = `FULLY_CHARGED` ∧ charge ≥ 90 ∧ health ≥ 70 ∧ type matches vehicle ∧ no active reservation. Reserving locks it (`RESERVED`) → no double booking; one active reservation per vehicle; slot capacity per station.
+- Reservation: `PENDING_PAYMENT → CONFIRMED → COMPLETED`, or `CANCELLED` / `EXPIRED`. Cancel and expire release the battery and refund a successful payment (simulated).
+- Payments: failure is stored as FAILED, reservation stays pending (retry or cancel); a paid reservation rejects further attempts (no duplicate charge); cash is settled at swap completion.
+- Swap: QR must match the reservation; only CONFIRMED reservations at this station with a still-RESERVED, compatible battery verify. Completion is one atomic update (issued → IN_USE, returned → DEPLETED, reservation/session COMPLETED, receipt, notifications) and can't run twice.
+- Dashboard numbers are derived from state on every render.
 
-- **Reservable battery** = status `AVAILABLE` ∧ charge ≥ 90 ∧ health ≥ 70 ∧ same type as vehicle ∧ no active reservation (`isReservable`).
-- **No double booking**: `createReservation` sets the battery to `RESERVED` in the same state update; a second attempt sees a non-AVAILABLE battery and is rejected. One active reservation per vehicle; slot capacity per station.
-- **Reservation lifecycle**: `PENDING_PAYMENT → CONFIRMED → COMPLETED`, or `CANCELLED` from the first two. Cancel releases the battery (`RESERVED → AVAILABLE`) and refunds a successful payment (simulated).
-- **Payments**: success → payment `SUCCESS`, reservation `PAID`/`CONFIRMED`. Failure → payment `FAILED`, reservation stays `PENDING_PAYMENT` with `FAILED` (never recorded as success); retry allowed. A reservation with a SUCCESS/PENDING payment rejects new attempts (no duplicate charge). Cash → confirmed, `PAY_AT_STATION`, settled when the operator completes the swap.
-- **Swap**: operator verifies (exists, this station, CONFIRMED, battery still RESERVED and compatible) → `IN_PROGRESS` session; completion atomically marks the issued battery `IN_USE`, the returned battery `NEEDS_CHARGING` (or `MAINTENANCE` if flagged), reservation `COMPLETED`, session `COMPLETED` with timestamps. Completed reservations cannot be verified again.
-- **Battery transitions** (`BATTERY_TRANSITIONS`): AVAILABLE→MAINTENANCE; CHARGING→AVAILABLE/MAINTENANCE; NEEDS_CHARGING→CHARGING/MAINTENANCE; MAINTENANCE→CHARGING. RESERVED/IN_USE only change via reservation/swap workflows.
-- **Metrics** are computed from state on each render (`selectors.ts`); revenue = sum of `SUCCESS` payments (refunds excluded).
+## Limitations (honest list)
 
-## Known limitations
-
-- Single-browser prototype: `localStorage` is not shared across browsers/devices, and there are no real accounts.
-- Pending-payment reservations hold their battery until paid or cancelled (no automatic expiry timer).
-- Owners cannot add vehicles; new stations created by an admin have no operator account.
-- Map, real payments and hardware control are intentionally out of scope. No automated test suite — the workflows were verified manually in the browser.
-- The production bundle is ~730 kB (Recharts); acceptable for a local demo.
+- **Deployment diagram:** the prototype is a single client-side app. There is no application server, MySQL database, real payment API or real email/SMS provider; those boxes are represented by the service modules, LocalStorage and the simulated outbox.
+- Passwords are stored as a toy checksum for demo purposes (`authService.ts`) — never do this in production.
+- The QR is generated and verified by pasting/“Simulate scan”; there is no camera scanning.
+- The state chart’s extra Reserved → Charging arrow is not implemented.
+- Data is per-browser; no automated test suite (workflows were verified manually in the browser).

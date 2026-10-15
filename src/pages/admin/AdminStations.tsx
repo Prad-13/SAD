@@ -5,7 +5,7 @@ import { BATTERY_TYPES } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Button, Card, Field, Modal, PageHeader, StatusBadge, Table, Td, inputClass } from '../../components/ui';
 import BatteryTable from '../../components/BatteryTable';
-import { countByStatus, saveStation, validateStationInput } from '../../services/inventoryService';
+import { countByStatus, saveStation, validateStationInput } from '../../services/batteryService';
 import { formatINR } from '../../utils/format';
 
 const blank: Station = { id: '', name: '', address: '', supportedBatteryTypes: [], status: 'OPEN', pricePerSwap: 100, slotCapacity: 2, demoDistanceKm: 5 };
@@ -42,7 +42,7 @@ export default function AdminStations() {
               <tr key={s.id}>
                 <Td><span className="font-semibold">{s.name}</span><span className="block text-xs text-slate-400">{s.id} · {s.address}</span></Td>
                 <Td>{s.supportedBatteryTypes.join(', ')}</Td><Td>{formatINR(s.pricePerSwap)}</Td><Td>{s.slotCapacity}</Td>
-                <Td>{c.AVAILABLE} / {total}</Td>
+                <Td>{c.FULLY_CHARGED} / {total}</Td>
                 <Td>
                   <select aria-label={`Availability of ${s.name}`} className={inputClass + ' w-36 py-1'} value={s.status}
                     onChange={(e) => run((st) => saveStation(st, { ...s, status: e.target.value as StationStatus }, false), `${s.name} is now ${e.target.value.toLowerCase()}.`)}>

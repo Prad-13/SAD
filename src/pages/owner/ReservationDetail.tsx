@@ -4,6 +4,8 @@ import { ArrowLeft, CheckCircle2, ClipboardList, Hourglass, XCircle } from 'luci
 import { useApp } from '../../context/AppContext';
 import { Button, Card, ConfirmDialog, EmptyState, PageHeader, StatusBadge, Table, Td } from '../../components/ui';
 import PaymentModal, { Receipt } from '../../components/PaymentModal';
+import QrCode from '../../components/QrCode';
+import SwapReceipt from '../../components/SwapReceipt';
 import { canCancel, cancelReservation } from '../../services/reservationService';
 import { formatDateTime, formatINR } from '../../utils/format';
 
@@ -11,7 +13,7 @@ export default function ReservationDetail() {
   const { reservationId } = useParams();
   const [search, setSearch] = useSearchParams();
   const { state, user, run } = useApp();
-  const [payOpen, setPayOpen] = useState(search.get('pay') === '1');
+  const [payOpen, setPayOpen] = useState(() => search.get('pay') === '1' && state.reservations.find((x) => x.id === reservationId)?.status === 'PENDING_PAYMENT');
   const [confirmCancel, setConfirmCancel] = useState(false);
   const r = state.reservations.find((x) => x.id === reservationId && x.ownerId === user!.id);
   if (!r) return <Card><EmptyState icon={ClipboardList} title="Reservation not found" action={<Link to="/owner/reservations"><Button>My reservations</Button></Link>} /></Card>;
@@ -27,6 +29,7 @@ export default function ReservationDetail() {
     PENDING_PAYMENT: { icon: Hourglass, tone: 'border-amber-200 bg-amber-50 text-amber-800', text: r.paymentStatus === 'FAILED' ? 'Payment failed. Your battery is held — retry payment or cancel.' : 'Reservation created. Complete payment to confirm it.' },
     CONFIRMED: { icon: CheckCircle2, tone: 'border-emerald-200 bg-emerald-50 text-emerald-800', text: 'Reservation confirmed. Show this reservation ID to the station operator at your slot.' },
     COMPLETED: { icon: CheckCircle2, tone: 'border-emerald-200 bg-emerald-50 text-emerald-800', text: 'Swap completed.' },
+    EXPIRED: { icon: XCircle, tone: 'border-slate-200 bg-slate-50 text-slate-700', text: 'This reservation expired and the battery was released.' },
     CANCELLED: { icon: XCircle, tone: 'border-slate-200 bg-slate-50 text-slate-700', text: 'This reservation was cancelled. The battery has been released.' },
   }[r.status];
   const Icon = banner.icon;
@@ -58,6 +61,15 @@ export default function ReservationDetail() {
         </Card>
 
         <div className="space-y-4">
+          {r.status === 'CONFIRMED' && (
+            <Card className="flex flex-col items-center gap-2 p-5 text-center">
+              <h2 className="font-semibold">Your check-in QR code</h2>
+              <QrCode value={r.qrCode} />
+              <p className="break-all font-mono text-xs text-slate-500">{r.qrCode}</p>
+              <p className="text-xs text-slate-500">Show this to the station operator. Valid until {formatDateTime(r.expiresAt)}.</p>
+            </Card>
+          )}
+          {swap && <SwapReceipt state={state} swap={swap} />}
           {goodPayment && <Receipt payment={goodPayment} reservation={r} />}
           <Card>
             <div className="border-b border-slate-200 p-4"><h2 className="font-semibold">Payment attempts <span className="text-xs font-normal text-amber-600">(simulated)</span></h2></div>

@@ -1,6 +1,8 @@
 import type { AppState, Out, Payment, PaymentMethod } from '../types';
 import { assert } from './errors';
 import { uniqueId } from '../utils/format';
+import { confirmedExpiry } from './reservationService';
+import { notify } from './notificationService';
 
 // ALL PAYMENTS ARE SIMULATED. No real payment provider, card data or money is involved.
 
@@ -65,12 +67,22 @@ export function attemptPayment(state: AppState, input: PayInput): Out<Payment> {
     payment = { ...base, status: 'FAILED', transactionReference: ref };
     resUpdate = { status: 'PENDING_PAYMENT', paymentStatus: 'FAILED' };
   }
+  const confirmed = resUpdate.status === 'CONFIRMED';
+  const next: AppState = {
+    ...state,
+    payments: [payment, ...state.payments],
+    reservations: state.reservations.map((x) =>
+      x.id === r.id ? { ...x, ...resUpdate, ...(confirmed ? { expiresAt: confirmedExpiry(r.slot) } : {}) } : x),
+  };
+  const station = state.stations.find((s) => s.id === r.stationId);
+  const message = confirmed
+    ? `Reservation ${r.id} is confirmed for ${new Date(r.slot).toLocaleString('en-IN')} at ${station?.name}. ${
+        input.method === 'CASH' ? `Pay ₹${r.estimatedFee} in cash at the station. ` : `Payment of ₹${r.estimatedFee} received (ref ${ref}). `
+      }Show your QR code to the operator.`
+    : `Payment of ₹${r.estimatedFee} for ${r.id} failed (ref ${ref}). You have not been charged. Retry or cancel before the reservation expires.`;
   return {
-    state: {
-      ...state,
-      payments: [payment, ...state.payments],
-      reservations: state.reservations.map((x) => (x.id === r.id ? { ...x, ...resUpdate } : x)),
-    },
+    state: notify(next, r.ownerId, confirmed ? 'Reservation confirmed' : 'Payment failed', message,
+      { reservationId: r.id, email: true, sms: confirmed }),
     result: payment,
   };
 }

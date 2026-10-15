@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { useApp } from '../../context/AppContext';
 import { Card, PageHeader, StatCard, StatusBadge, Table, Td } from '../../components/ui';
 import { adminMetrics, swapsPerDay } from '../../services/selectors';
-import { countByStatus } from '../../services/inventoryService';
+import { countByStatus } from '../../services/batteryService';
 import { BATTERY_STATUSES } from '../../types';
 import { formatINR } from '../../utils/format';
 

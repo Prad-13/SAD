@@ -81,12 +81,12 @@ export function DemoNote({ children }: { children: ReactNode }) {
 
 // ---------- Badges ----------
 const badgeTone: Record<string, string> = {
-  AVAILABLE: 'bg-emerald-100 text-emerald-700', OPEN: 'bg-emerald-100 text-emerald-700', COMPLETED: 'bg-emerald-100 text-emerald-700', PAID: 'bg-emerald-100 text-emerald-700', SUCCESS: 'bg-emerald-100 text-emerald-700',
+  FULLY_CHARGED: 'bg-emerald-100 text-emerald-700', OPEN: 'bg-emerald-100 text-emerald-700', COMPLETED: 'bg-emerald-100 text-emerald-700', PAID: 'bg-emerald-100 text-emerald-700', SUCCESS: 'bg-emerald-100 text-emerald-700',
   CHARGING: 'bg-sky-100 text-sky-700', CONFIRMED: 'bg-sky-100 text-sky-700', IN_PROGRESS: 'bg-sky-100 text-sky-700',
   RESERVED: 'bg-violet-100 text-violet-700',
   IN_USE: 'bg-indigo-100 text-indigo-700',
-  NEEDS_CHARGING: 'bg-amber-100 text-amber-700', PENDING: 'bg-amber-100 text-amber-700', PENDING_PAYMENT: 'bg-amber-100 text-amber-700', PAY_AT_STATION: 'bg-amber-100 text-amber-700', MAINTENANCE: 'bg-orange-100 text-orange-700',
-  FAILED: 'bg-red-100 text-red-700', CANCELLED: 'bg-slate-200 text-slate-600', CLOSED: 'bg-slate-200 text-slate-600', ABORTED: 'bg-slate-200 text-slate-600', REFUNDED: 'bg-slate-200 text-slate-600',
+  CREATED: 'bg-slate-100 text-slate-600', IN_INVENTORY: 'bg-cyan-100 text-cyan-700', DEPLETED: 'bg-amber-100 text-amber-700', EMAIL: 'bg-sky-100 text-sky-700', SMS: 'bg-violet-100 text-violet-700', IN_APP: 'bg-emerald-100 text-emerald-700', PENDING: 'bg-amber-100 text-amber-700', PENDING_PAYMENT: 'bg-amber-100 text-amber-700', PAY_AT_STATION: 'bg-amber-100 text-amber-700', MAINTENANCE: 'bg-orange-100 text-orange-700',
+  FAILED: 'bg-red-100 text-red-700', CANCELLED: 'bg-slate-200 text-slate-600', CLOSED: 'bg-slate-200 text-slate-600', EXPIRED: 'bg-slate-200 text-slate-600', ABORTED: 'bg-slate-200 text-slate-600', REFUNDED: 'bg-slate-200 text-slate-600',
 };
 export function StatusBadge({ status }: { status: string }) {
   return (

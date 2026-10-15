@@ -16,7 +16,7 @@ export default function MyReservations() {
     <>
       <PageHeader title="My Reservations & Swap History" subtitle="Track reservations, payments and completed swaps."
         actions={<select aria-label="Filter by status" className={inputClass + ' w-44'} value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="">All statuses</option>{['PENDING_PAYMENT', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+          <option value="">All statuses</option>{['PENDING_PAYMENT', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED'].map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
         </select>} />
       <Card>
         {list.length === 0 ? <EmptyState icon={ClipboardList} title="No reservations" message="Reserve a battery to see it here."

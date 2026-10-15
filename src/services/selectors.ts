@@ -1,6 +1,6 @@
 import type { AppState, Reservation, SwapSession } from '../types';
 import { isActiveReservation } from './constants';
-import { isReservable } from './inventoryService';
+import { isReservable } from './batteryService';
 
 /** All dashboard numbers are derived from state on every render — nothing is hardcoded (rule 10). */
 export function adminMetrics(s: AppState) {

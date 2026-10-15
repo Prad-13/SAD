@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { BatteryCharging, MapPin } from 'lucide-react';
 import type { AppState, Station } from '../types';
 import { Button, Card, StatusBadge } from './ui';
-import { reservableBatteries } from '../services/inventoryService';
+import { reservableBatteries } from '../services/batteryService';
 import { formatINR } from '../utils/format';
 
 export default function StationCard({ station, state, ownerBatteryTypes }: { station: Station; state: AppState; ownerBatteryTypes: string[] }) {

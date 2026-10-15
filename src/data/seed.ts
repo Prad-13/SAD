@@ -1,4 +1,5 @@
-import type { AppState, Battery, Payment, Reservation, SwapSession } from '../types';
+import type { AppState, Battery, Notification, Payment, Reservation, SwapSession, User } from '../types';
+import { DEMO_PASSWORD, hashPassword } from '../services/authService';
 
 // ALL DATA BELOW IS FICTIONAL SAMPLE DATA for a college project demo.
 
@@ -30,23 +31,24 @@ const bat = (
 export function createSeed(): AppState {
   const batteries: Battery[] = [
     // Station STN-1001
-    bat('BAT-4801', 'STN-1001', 'VS-48V', 98, 96, 'AVAILABLE'),
-    bat('BAT-4802', 'STN-1001', 'VS-48V', 95, 91, 'AVAILABLE'),
+    bat('BAT-4801', 'STN-1001', 'VS-48V', 98, 96, 'FULLY_CHARGED'),
+    bat('BAT-4802', 'STN-1001', 'VS-48V', 95, 91, 'FULLY_CHARGED'),
     bat('BAT-4803', 'STN-1001', 'VS-48V', 64, 93, 'CHARGING'),
-    bat('BAT-4804', 'STN-1001', 'VS-48V', 12, 88, 'NEEDS_CHARGING'),
+    bat('BAT-4804', 'STN-1001', 'VS-48V', 12, 88, 'DEPLETED'),
     bat('BAT-6001', 'STN-1001', 'VS-60V', 100, 97, 'RESERVED'),
-    bat('BAT-6002', 'STN-1001', 'VS-60V', 40, 62, 'MAINTENANCE'),
+    bat('BAT-6002', 'STN-1001', 'VS-60V', 40, 62, 'IN_INVENTORY'),
     // Station STN-1002
-    bat('BAT-4805', 'STN-1002', 'VS-48V', 92, 90, 'AVAILABLE'),
-    bat('BAT-6003', 'STN-1002', 'VS-60V', 99, 95, 'AVAILABLE'),
-    bat('BAT-7201', 'STN-1002', 'VS-72V', 99, 94, 'AVAILABLE'),
+    bat('BAT-4805', 'STN-1002', 'VS-48V', 92, 90, 'FULLY_CHARGED'),
+    bat('BAT-6003', 'STN-1002', 'VS-60V', 99, 95, 'FULLY_CHARGED'),
+    bat('BAT-7201', 'STN-1002', 'VS-72V', 99, 94, 'FULLY_CHARGED'),
     bat('BAT-7202', 'STN-1002', 'VS-72V', 55, 92, 'CHARGING'),
-    bat('BAT-7203', 'STN-1002', 'VS-72V', 20, 89, 'NEEDS_CHARGING'),
+    bat('BAT-7203', 'STN-1002', 'VS-72V', 20, 89, 'DEPLETED'),
     // Station STN-1003
-    bat('BAT-6004', 'STN-1003', 'VS-60V', 97, 93, 'AVAILABLE'),
-    bat('BAT-7204', 'STN-1003', 'VS-72V', 96, 95, 'AVAILABLE'),
-    bat('BAT-7205', 'STN-1003', 'VS-72V', 91, 90, 'AVAILABLE'),
+    bat('BAT-6004', 'STN-1003', 'VS-60V', 97, 93, 'FULLY_CHARGED'),
+    bat('BAT-7204', 'STN-1003', 'VS-72V', 96, 95, 'FULLY_CHARGED'),
+    bat('BAT-7205', 'STN-1003', 'VS-72V', 91, 90, 'FULLY_CHARGED'),
     bat('BAT-6005', 'STN-1003', 'VS-60V', 80, 94, 'CHARGING'),
+    bat('BAT-7206', 'STN-1003', 'VS-72V', 0, 100, 'CREATED'),
     // Batteries currently installed in customer vehicles
     bat('BAT-4890', 'STN-1001', 'VS-48V', 18, 87, 'IN_USE'),
     bat('BAT-6090', 'STN-1001', 'VS-60V', 22, 90, 'IN_USE'),
@@ -58,6 +60,7 @@ export function createSeed(): AppState {
     slot: string, status: Reservation['status'], paymentStatus: Reservation['paymentStatus'], fee: number,
   ): Reservation => ({
     id, ownerId, vehicleId, stationId, batteryId, slot, createdAt: slot, status, paymentStatus, estimatedFee: fee,
+    qrCode: `VS:${id}:SEED01`, expiresAt: slot,
   });
 
   const reservations: Reservation[] = [
@@ -72,6 +75,7 @@ export function createSeed(): AppState {
   // The seeded confirmed reservation must be in the future relative to "now" at seed time.
   reservations[4].slot = daysAhead(1, 11);
   reservations[4].createdAt = daysAgo(0, 8);
+  reservations[4].expiresAt = new Date(new Date(reservations[4].slot).getTime() + 60 * 60000).toISOString();
 
   const sw = (
     id: string, reservationId: string, stationId: string, returned: string, assigned: string, at: string,
@@ -103,16 +107,27 @@ export function createSeed(): AppState {
     pay('PAY-SEED-0007', 'RSV-SEED-0007', 158, 'CARD', 'SUCCESS', 'SIM-CARD-9Z8Y7X6W', daysAgo(4, 11)),
   ];
 
+  const mkUser = (id: string, name: string, email: string, phone: string, role: User['role'], stationId?: string): User => ({
+    id, name, email, phone, role, active: true, passwordHash: hashPassword(email, DEMO_PASSWORD), ...(stationId ? { stationId } : {}),
+  });
+  const users: User[] = [
+    mkUser('USR-O1', 'Aarav Sharma', 'aarav.sharma@demo.voltswap.in', '9876500001', 'OWNER'),
+    mkUser('USR-O2', 'Diya Nair', 'diya.nair@demo.voltswap.in', '9876500002', 'OWNER'),
+    mkUser('USR-O3', 'Rohan Iyer', 'rohan.iyer@demo.voltswap.in', '9876500003', 'OWNER'),
+    mkUser('USR-P1', 'Meera Krishnan', 'meera.k@demo.voltswap.in', '9876500011', 'OPERATOR', 'STN-1001'),
+    mkUser('USR-P2', 'Suresh Patil', 'suresh.p@demo.voltswap.in', '9876500012', 'OPERATOR', 'STN-1002'),
+    mkUser('USR-P3', 'Anita Desai', 'anita.d@demo.voltswap.in', '9876500013', 'OPERATOR', 'STN-1003'),
+    mkUser('USR-A1', 'Vikram Rao', 'vikram.rao@demo.voltswap.in', '9876500021', 'ADMIN'),
+  ];
+
+  const notifications: Notification[] = [
+    { id: 'NTF-SEED-0001', userId: 'USR-O3', channel: 'IN_APP', recipient: 'rohan.iyer@demo.voltswap.in', subject: 'Swap completed', message: 'Swap SWP-SEED-0003 done. Receipt RCT-SEED-0003.', createdAt: daysAgo(1), read: true, reservationId: 'RSV-SEED-0003' },
+    { id: 'NTF-SEED-0002', userId: 'USR-O2', channel: 'IN_APP', recipient: 'diya.nair@demo.voltswap.in', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: false, reservationId: 'RSV-SEED-0005' },
+    { id: 'NTF-SEED-0003', userId: 'USR-O2', channel: 'SMS', recipient: '9876500002', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: true, reservationId: 'RSV-SEED-0005' },
+  ];
+
   return {
-    users: [
-      { id: 'USR-O1', name: 'Aarav Sharma', email: 'aarav.sharma@demo.voltswap.in', role: 'OWNER' },
-      { id: 'USR-O2', name: 'Diya Nair', email: 'diya.nair@demo.voltswap.in', role: 'OWNER' },
-      { id: 'USR-O3', name: 'Rohan Iyer', email: 'rohan.iyer@demo.voltswap.in', role: 'OWNER' },
-      { id: 'USR-P1', name: 'Meera Krishnan', email: 'meera.k@demo.voltswap.in', role: 'OPERATOR', stationId: 'STN-1001' },
-      { id: 'USR-P2', name: 'Suresh Patil', email: 'suresh.p@demo.voltswap.in', role: 'OPERATOR', stationId: 'STN-1002' },
-      { id: 'USR-P3', name: 'Anita Desai', email: 'anita.d@demo.voltswap.in', role: 'OPERATOR', stationId: 'STN-1003' },
-      { id: 'USR-A1', name: 'Vikram Rao', email: 'vikram.rao@demo.voltswap.in', role: 'ADMIN' },
-    ],
+    users,
     vehicles: [
       { id: 'VEH-1', ownerId: 'USR-O1', registrationNumber: 'KA01 EV 1024', batteryType: 'VS-48V', model: 'Volt Scooter S1', currentBatteryId: 'BAT-4890' },
       { id: 'VEH-2', ownerId: 'USR-O2', registrationNumber: 'KA05 EV 7781', batteryType: 'VS-60V', model: 'Volt Cargo Trike T2', currentBatteryId: 'BAT-6090' },
@@ -127,5 +142,6 @@ export function createSeed(): AppState {
     reservations,
     swaps,
     payments,
+    notifications,
   };
 }

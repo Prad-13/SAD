@@ -1,30 +1,33 @@
-// Central, typed data model for VoltSwap. Every entity in the prototype is defined here.
+﻿// Central, typed data model for VoltSwap. Every entity in the prototype is defined here.
 
 export type Role = 'OWNER' | 'OPERATOR' | 'ADMIN';
 
 export const BATTERY_TYPES = ['VS-48V', 'VS-60V', 'VS-72V'] as const;
 export type BatteryType = (typeof BATTERY_TYPES)[number];
 
+/** Battery lifecycle (state chart): CREATED → IN_INVENTORY → CHARGING → FULLY_CHARGED → RESERVED → IN_USE → DEPLETED → CHARGING … */
 export type BatteryStatus =
+  | 'CREATED'
+  | 'IN_INVENTORY'
   | 'CHARGING'
-  | 'AVAILABLE'
+  | 'FULLY_CHARGED'
   | 'RESERVED'
   | 'IN_USE'
-  | 'NEEDS_CHARGING'
-  | 'MAINTENANCE';
+  | 'DEPLETED';
 
 export const BATTERY_STATUSES: BatteryStatus[] = [
-  'AVAILABLE',
+  'CREATED',
+  'IN_INVENTORY',
   'CHARGING',
+  'FULLY_CHARGED',
   'RESERVED',
   'IN_USE',
-  'NEEDS_CHARGING',
-  'MAINTENANCE',
+  'DEPLETED',
 ];
 
 export type StationStatus = 'OPEN' | 'CLOSED' | 'MAINTENANCE';
 
-export type ReservationStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type ReservationStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
 export type ReservationPaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'PAY_AT_STATION' | 'REFUNDED';
 
 export type PaymentMethod = 'UPI' | 'CARD' | 'CASH';
@@ -37,6 +40,10 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  phone: string;
+  /** Demo-only hash of email+password (see authService). Never do this in production. */
+  passwordHash: string;
+  active: boolean;
   /** Only for operators: the station they run. */
   stationId?: string;
 }
@@ -83,6 +90,10 @@ export interface Reservation {
   status: ReservationStatus;
   paymentStatus: ReservationPaymentStatus;
   estimatedFee: number; // INR incl. GST
+  /** Payload shown as a QR code after confirmation and checked by the operator: VS:<reservationId>:<token> */
+  qrCode: string;
+  /** Pending payment: created+15 min. Confirmed: slot+60 min. After this the reservation EXPIRES. */
+  expiresAt: string;
 }
 
 export interface SwapSession {
@@ -106,6 +117,21 @@ export interface Payment {
   createdAt: string;
 }
 
+export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'SMS';
+
+/** A simulated message sent by the Notification service (in-app, or via the simulated Email/SMS service). */
+export interface Notification {
+  id: string;
+  userId: string;
+  channel: NotificationChannel;
+  recipient: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+  reservationId?: string;
+}
+
 export interface AppState {
   users: User[];
   vehicles: Vehicle[];
@@ -114,6 +140,7 @@ export interface AppState {
   reservations: Reservation[];
   swaps: SwapSession[];
   payments: Payment[];
+  notifications: Notification[];
 }
 
 /** Every service function returns the next state plus a result value. */
@@ -121,3 +148,4 @@ export interface Out<T> {
   state: AppState;
   result: T;
 }
+

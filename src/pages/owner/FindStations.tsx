@@ -4,7 +4,9 @@ import { useApp } from '../../context/AppContext';
 import { Card, DemoNote, EmptyState, PageHeader, inputClass } from '../../components/ui';
 import StationCard from '../../components/StationCard';
 import { BATTERY_TYPES } from '../../types';
-import { reservableBatteries } from '../../services/inventoryService';
+import { nearestStationWithBattery, searchStations } from '../../services/stationSearchService';
+import { Link } from 'react-router-dom';
+import { Button } from '../../components/ui';
 
 export default function FindStations() {
   const { state, user } = useApp();
@@ -14,17 +16,19 @@ export default function FindStations() {
   const [status, setStatus] = useState('');
   const [onlyAvail, setOnlyAvail] = useState(false);
 
-  const list = useMemo(() => state.stations
-    .filter((s) => (q ? `${s.name} ${s.address}`.toLowerCase().includes(q.toLowerCase()) : true))
-    .filter((s) => (type ? s.supportedBatteryTypes.some((t) => t === type) : true))
-    .filter((s) => (status ? s.status === status : true))
-    .filter((s) => (onlyAvail ? reservableBatteries(state, s.id).length > 0 : true))
-    .sort((a, b) => a.demoDistanceKm - b.demoDistanceKm), [state, q, type, status, onlyAvail]);
+  const list = useMemo(() => searchStations(state, { q, batteryType: type, status, onlyWithCharged: onlyAvail }), [state, q, type, status, onlyAvail]);
+  const nearest = types.length ? nearestStationWithBattery(state, types[0]) : undefined;
 
   return (
     <>
       <PageHeader title="Find Stations" subtitle="Search swap stations and check charged battery availability." />
       <div className="mb-4"><DemoNote>Distances and locations are fictional demo data. No maps service is used.</DemoNote></div>
+      {nearest && (
+        <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm text-emerald-900">Nearest station with a charged {types[0]} battery: <b>{nearest.name}</b> ({nearest.demoDistanceKm} km, demo)</p>
+          <Link to={`/owner/reserve?stationId=${nearest.id}`}><Button variant="success" size="sm">Reserve here</Button></Link>
+        </Card>
+      )}
       <Card className="mb-6 grid gap-3 p-4 md:grid-cols-4">
         <div className="relative md:col-span-1">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
