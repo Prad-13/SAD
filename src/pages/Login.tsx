@@ -60,7 +60,7 @@ export default function Login() {
           </div>
           {mode === 'login' ? (
             <form onSubmit={submitLogin} className="space-y-4">
-              <Field label="Email"><input type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="aarav.sharma@demo.voltswap.in" autoComplete="username" /></Field>
+              <Field label="Email"><input type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="arjun.reddy@demo.voltswap.in" autoComplete="username" /></Field>
               <Field label="Password"><input type="password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>
               <Button type="submit" className="w-full">Log in</Button>
             </form>
@@ -71,7 +71,7 @@ export default function Login() {
                 <Field label="Mobile (10 digits)" error={errors.phone}><input className={inputClass} inputMode="numeric" maxLength={10} value={form.phone} onChange={set('phone')} /></Field>
                 <Field label="Email" error={errors.email}><input className={inputClass} value={form.email} onChange={set('email')} /></Field>
                 <Field label="Password (min 6)" error={errors.password}><input type="password" className={inputClass} value={form.password} onChange={set('password')} /></Field>
-                <Field label="Vehicle registration" error={errors.registrationNumber}><input className={inputClass} placeholder="KA01 EV 1234" value={form.registrationNumber} onChange={set('registrationNumber')} /></Field>
+                <Field label="Vehicle registration" error={errors.registrationNumber}><input className={inputClass} placeholder="TS09 EV 1234" value={form.registrationNumber} onChange={set('registrationNumber')} /></Field>
                 <Field label="Vehicle model" error={errors.vehicleModel}><input className={inputClass} value={form.vehicleModel} onChange={set('vehicleModel')} /></Field>
               </div>
               <Field label="Battery type" error={errors.batteryType}>

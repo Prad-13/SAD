@@ -1,7 +1,7 @@
 import type { AppState } from '../types';
 import { createSeed } from '../data/seed';
 
-const STATE_KEY = 'voltswap.state.v2';
+const STATE_KEY = 'voltswap.state.v3';
 const SESSION_KEY = 'voltswap.session.v1';
 
 const ARRAY_KEYS: (keyof AppState)[] = ['users', 'vehicles', 'stations', 'batteries', 'reservations', 'swaps', 'payments', 'notifications'];

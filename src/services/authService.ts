@@ -45,7 +45,7 @@ export function validateRegistration(state: AppState, i: RegisterInput): Record<
   else if (state.users.some((u) => u.email.toLowerCase() === i.email.trim().toLowerCase())) e.email = 'An account with this email already exists.';
   if (!PHONE_RE.test(i.phone.trim())) e.phone = 'Enter a 10-digit Indian mobile number.';
   if (i.password.length < 6) e.password = 'Password must be at least 6 characters.';
-  if (!REG_RE.test(i.registrationNumber.trim())) e.registrationNumber = 'Use a format like KA01 EV 1234.';
+  if (!REG_RE.test(i.registrationNumber.trim())) e.registrationNumber = 'Use a format like TS09 EV 1234.';
   else if (state.vehicles.some((v) => v.registrationNumber.replace(/\s/g, '').toUpperCase() === i.registrationNumber.replace(/\s/g, '').toUpperCase()))
     e.registrationNumber = 'This vehicle is already registered.';
   if (i.vehicleModel.trim().length < 2) e.vehicleModel = 'Enter the vehicle model.';

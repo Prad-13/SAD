@@ -111,32 +111,32 @@ export function createSeed(): AppState {
     id, name, email, phone, role, active: true, passwordHash: hashPassword(email, DEMO_PASSWORD), ...(stationId ? { stationId } : {}),
   });
   const users: User[] = [
-    mkUser('USR-O1', 'Aarav Sharma', 'aarav.sharma@demo.voltswap.in', '9876500001', 'OWNER'),
-    mkUser('USR-O2', 'Diya Nair', 'diya.nair@demo.voltswap.in', '9876500002', 'OWNER'),
-    mkUser('USR-O3', 'Rohan Iyer', 'rohan.iyer@demo.voltswap.in', '9876500003', 'OWNER'),
-    mkUser('USR-P1', 'Meera Krishnan', 'meera.k@demo.voltswap.in', '9876500011', 'OPERATOR', 'STN-1001'),
-    mkUser('USR-P2', 'Suresh Patil', 'suresh.p@demo.voltswap.in', '9876500012', 'OPERATOR', 'STN-1002'),
-    mkUser('USR-P3', 'Anita Desai', 'anita.d@demo.voltswap.in', '9876500013', 'OPERATOR', 'STN-1003'),
-    mkUser('USR-A1', 'Vikram Rao', 'vikram.rao@demo.voltswap.in', '9876500021', 'ADMIN'),
+    mkUser('USR-O1', 'Arjun Reddy', 'arjun.reddy@demo.voltswap.in', '9876500001', 'OWNER'),
+    mkUser('USR-O2', 'Sravani Goud', 'sravani.goud@demo.voltswap.in', '9876500002', 'OWNER'),
+    mkUser('USR-O3', 'Rohit Naidu', 'rohit.naidu@demo.voltswap.in', '9876500003', 'OWNER'),
+    mkUser('USR-P1', 'Lakshmi Prasad', 'lakshmi.p@demo.voltswap.in', '9876500011', 'OPERATOR', 'STN-1001'),
+    mkUser('USR-P2', 'Imran Khan', 'imran.k@demo.voltswap.in', '9876500012', 'OPERATOR', 'STN-1002'),
+    mkUser('USR-P3', 'Anitha Varma', 'anitha.v@demo.voltswap.in', '9876500013', 'OPERATOR', 'STN-1003'),
+    mkUser('USR-A1', 'Venkat Rao', 'venkat.rao@demo.voltswap.in', '9876500021', 'ADMIN'),
   ];
 
   const notifications: Notification[] = [
-    { id: 'NTF-SEED-0001', userId: 'USR-O3', channel: 'IN_APP', recipient: 'rohan.iyer@demo.voltswap.in', subject: 'Swap completed', message: 'Swap SWP-SEED-0003 done. Receipt RCT-SEED-0003.', createdAt: daysAgo(1), read: true, reservationId: 'RSV-SEED-0003' },
-    { id: 'NTF-SEED-0002', userId: 'USR-O2', channel: 'IN_APP', recipient: 'diya.nair@demo.voltswap.in', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: false, reservationId: 'RSV-SEED-0005' },
+    { id: 'NTF-SEED-0001', userId: 'USR-O3', channel: 'IN_APP', recipient: 'rohit.naidu@demo.voltswap.in', subject: 'Swap completed', message: 'Swap SWP-SEED-0003 done. Receipt RCT-SEED-0003.', createdAt: daysAgo(1), read: true, reservationId: 'RSV-SEED-0003' },
+    { id: 'NTF-SEED-0002', userId: 'USR-O2', channel: 'IN_APP', recipient: 'sravani.goud@demo.voltswap.in', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: false, reservationId: 'RSV-SEED-0005' },
     { id: 'NTF-SEED-0003', userId: 'USR-O2', channel: 'SMS', recipient: '9876500002', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: true, reservationId: 'RSV-SEED-0005' },
   ];
 
   return {
     users,
     vehicles: [
-      { id: 'VEH-1', ownerId: 'USR-O1', registrationNumber: 'KA01 EV 1024', batteryType: 'VS-48V', model: 'Volt Scooter S1', currentBatteryId: 'BAT-4890' },
-      { id: 'VEH-2', ownerId: 'USR-O2', registrationNumber: 'KA05 EV 7781', batteryType: 'VS-60V', model: 'Volt Cargo Trike T2', currentBatteryId: 'BAT-6090' },
-      { id: 'VEH-3', ownerId: 'USR-O3', registrationNumber: 'KA03 EV 3309', batteryType: 'VS-72V', model: 'Volt Auto A3', currentBatteryId: 'BAT-7290' },
+      { id: 'VEH-1', ownerId: 'USR-O1', registrationNumber: 'TS09 EV 1024', batteryType: 'VS-48V', model: 'Volt Scooter S1', currentBatteryId: 'BAT-4890' },
+      { id: 'VEH-2', ownerId: 'USR-O2', registrationNumber: 'TS08 EV 7781', batteryType: 'VS-60V', model: 'Volt Cargo Trike T2', currentBatteryId: 'BAT-6090' },
+      { id: 'VEH-3', ownerId: 'USR-O3', registrationNumber: 'TS07 EV 3309', batteryType: 'VS-72V', model: 'Volt Auto A3', currentBatteryId: 'BAT-7290' },
     ],
     stations: [
-      { id: 'STN-1001', name: 'Koramangala Swap Hub', address: 'Plot 14, 5th Block, Demo Nagar, Bengaluru', supportedBatteryTypes: ['VS-48V', 'VS-60V'], status: 'OPEN', pricePerSwap: 90, slotCapacity: 2, demoDistanceKm: 1.8 },
-      { id: 'STN-1002', name: 'Whitefield Tech Park Station', address: 'Gate 3, Sample Tech Park Road, Bengaluru', supportedBatteryTypes: ['VS-48V', 'VS-60V', 'VS-72V'], status: 'OPEN', pricePerSwap: 150, slotCapacity: 3, demoDistanceKm: 6.4 },
-      { id: 'STN-1003', name: 'Electronic City Swap Bay', address: 'Unit 7, Example Industrial Layout, Bengaluru', supportedBatteryTypes: ['VS-60V', 'VS-72V'], status: 'OPEN', pricePerSwap: 120, slotCapacity: 2, demoDistanceKm: 11.2 },
+      { id: 'STN-1001', name: 'Hitech City Swap Hub', address: 'Plot 14, Madhapur Main Road, Hitech City, Hyderabad', supportedBatteryTypes: ['VS-48V', 'VS-60V'], status: 'OPEN', pricePerSwap: 90, slotCapacity: 2, demoDistanceKm: 1.8 },
+      { id: 'STN-1002', name: 'Gachibowli Tech Park Station', address: 'Gate 3, Sample Tech Park Road, Gachibowli, Hyderabad', supportedBatteryTypes: ['VS-48V', 'VS-60V', 'VS-72V'], status: 'OPEN', pricePerSwap: 150, slotCapacity: 3, demoDistanceKm: 6.4 },
+      { id: 'STN-1003', name: 'Kukatpally Swap Bay', address: 'Unit 7, Example Industrial Layout, Kukatpally, Hyderabad', supportedBatteryTypes: ['VS-60V', 'VS-72V'], status: 'OPEN', pricePerSwap: 120, slotCapacity: 2, demoDistanceKm: 11.2 },
     ],
     batteries,
     reservations,
