@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #070e22;
+  --color-navy-900: #0b1530;
+  --color-navy-800: #12204a;
+  --color-navy-700: #1b2d63;
+  --color-volt-400: #34e07a;
+  --color-volt-500: #16c768;
+  --color-volt-600: #0fa857;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: #f3f5f9;
+  color: #0f172a;
+}
+
+button:not(:disabled),
+[role="button"] {
+  cursor: pointer;
+}
