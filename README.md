@@ -14,11 +14,11 @@ Demo password for every seeded account: `demo123` (or use the one-click demo but
 
 ## Demo script
 
-1. Log in as **Arjun Reddy** (owner, VS-48V) → *Find Stations* (nearest-first, banner shows the nearest station with a compatible charged battery) → *Reserve Battery* → pick BAT-4801 and a slot.
+1. Log in as **Arjun** (owner, VS-48V) → *Find Stations* (nearest-first, banner shows the nearest station with a compatible charged battery) → *Reserve Battery* → pick BAT-4801 and a slot.
 2. Pay (UPI `arjun@upi`): choose **Simulate failed payment** first → retry → success. The reservation becomes *Confirmed*, a **QR code** appears, and Notifications show in-app + simulated email + SMS.
-3. *Switch role* → **Lakshmi Prasad** (operator, Hitech City) → *Manage Swaps* → *Simulate scan* (or paste the QR text; a wrong QR is rejected) → pick the returned battery → tick “handed over” → *Confirm swap completed*. Re-scanning the same QR is rejected.
+3. *Switch role* → **Prasad** (operator, Hitech City) → *Manage Swaps* → *Simulate scan* (or paste the QR text; a wrong QR is rejected) → pick the returned battery → tick “handed over” → *Confirm swap completed*. Re-scanning the same QR is rejected.
 4. *Battery Inventory*: the returned battery is **Depleted** → *Send to charging* → *Charging complete* (Fully charged).
-5. Back as Arjun: *My Reservations* (swap receipt), *Transaction History*, *Notifications*. As **Venkat Rao** (admin): dashboard, *Manage Users*, *Reports* (incl. the simulated notification outbox, CSV export).
+5. Back as Arjun: *My Reservations* (swap receipt), *Transaction History*, *Notifications*. As **Venkat** (admin): dashboard, *Manage Users*, *Reports* (incl. the simulated notification outbox, CSV export).
 6. Expiry: an unpaid reservation expires after 15 min (confirmed ones 60 min after their slot) and the battery returns to Fully charged. Sidebar *Reset demo data* restores the seed.
 
 ## How the code maps to the UML diagrams

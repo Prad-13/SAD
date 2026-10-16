@@ -111,18 +111,18 @@ export function createSeed(): AppState {
     id, name, email, phone, role, active: true, passwordHash: hashPassword(email, DEMO_PASSWORD), ...(stationId ? { stationId } : {}),
   });
   const users: User[] = [
-    mkUser('USR-O1', 'Arjun Reddy', 'arjun.reddy@demo.voltswap.in', '9876500001', 'OWNER'),
-    mkUser('USR-O2', 'Sravani Goud', 'sravani.goud@demo.voltswap.in', '9876500002', 'OWNER'),
-    mkUser('USR-O3', 'Rohit Naidu', 'rohit.naidu@demo.voltswap.in', '9876500003', 'OWNER'),
-    mkUser('USR-P1', 'Lakshmi Prasad', 'lakshmi.p@demo.voltswap.in', '9876500011', 'OPERATOR', 'STN-1001'),
-    mkUser('USR-P2', 'Imran Khan', 'imran.k@demo.voltswap.in', '9876500012', 'OPERATOR', 'STN-1002'),
-    mkUser('USR-P3', 'Anitha Varma', 'anitha.v@demo.voltswap.in', '9876500013', 'OPERATOR', 'STN-1003'),
-    mkUser('USR-A1', 'Venkat Rao', 'venkat.rao@demo.voltswap.in', '9876500021', 'ADMIN'),
+    mkUser('USR-O1', 'Arjun', 'arjun.reddy@demo.voltswap.in', '9876500001', 'OWNER'),
+    mkUser('USR-O2', 'Rohit', 'rohituser1@demo.voltswap.in', '9876500002', 'OWNER'),
+    mkUser('USR-O3', 'Vinay', 'vinay@demo.voltswap.in', '9876500003', 'OWNER'),
+    mkUser('USR-P1', 'Prasad', 'prasad.p@demo.voltswap.in', '9876500011', 'OPERATOR', 'STN-1001'),
+    mkUser('USR-P2', 'Imran', 'imran.k@demo.voltswap.in', '9876500012', 'OPERATOR', 'STN-1002'),
+    mkUser('USR-P3', 'Abhi', 'abhi.p@demo.voltswap.in', '9876500013', 'OPERATOR', 'STN-1003'),
+    mkUser('USR-A1', 'Venkat', 'venkat.rao@demo.voltswap.in', '9876500021', 'ADMIN'),
   ];
 
   const notifications: Notification[] = [
-    { id: 'NTF-SEED-0001', userId: 'USR-O3', channel: 'IN_APP', recipient: 'rohit.naidu@demo.voltswap.in', subject: 'Swap completed', message: 'Swap SWP-SEED-0003 done. Receipt RCT-SEED-0003.', createdAt: daysAgo(1), read: true, reservationId: 'RSV-SEED-0003' },
-    { id: 'NTF-SEED-0002', userId: 'USR-O2', channel: 'IN_APP', recipient: 'sravani.goud@demo.voltswap.in', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: false, reservationId: 'RSV-SEED-0005' },
+    { id: 'NTF-SEED-0001', userId: 'USR-O3', channel: 'IN_APP', recipient: 'vinay@demo.voltswap.in', subject: 'Swap completed', message: 'Swap SWP-SEED-0003 done. Receipt RCT-SEED-0003.', createdAt: daysAgo(1), read: true, reservationId: 'RSV-SEED-0003' },
+    { id: 'NTF-SEED-0002', userId: 'USR-O2', channel: 'IN_APP', recipient: 'rohituser1@demo.voltswap.in', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: false, reservationId: 'RSV-SEED-0005' },
     { id: 'NTF-SEED-0003', userId: 'USR-O2', channel: 'SMS', recipient: '9876500002', subject: 'Reservation confirmed', message: 'Reservation RSV-SEED-0005 is confirmed. Show your QR code to the operator.', createdAt: daysAgo(0, 8), read: true, reservationId: 'RSV-SEED-0005' },
   ];
 
